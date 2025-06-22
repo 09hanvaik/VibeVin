@@ -1,134 +1,196 @@
-import { NextRequest } from 'next/server'
-import { createBountySchema, paginationSchema } from '@/lib/validation'
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware'
-import { prisma } from '@/lib/db'
-import { successResponse, errorResponse, validationErrorResponse, paginatedResponse, withRateLimit } from '@/lib/api'
+import { NextRequest, NextResponse } from 'next/server'
 
-// Create new bounty
-export const POST = withRateLimit(withAuth(async (request: AuthenticatedRequest) => {
+// Mock bounty data
+const mockBounties = [
+  {
+    id: '1',
+    title: 'Design System Implementation',
+    description: 'Create a comprehensive design system for our new product with components, guidelines, and documentation.',
+    reward: 2500,
+    status: 'active',
+    deadline: '2024-02-15',
+    participants: 12,
+    tags: ['UI/UX', 'Design System', 'Figma'],
+    category: 'Design',
+    createdAt: '2024-01-15',
+    createdBy: {
+      id: '1',
+      name: 'John Doe',
+      username: 'johndoe'
+    }
+  },
+  {
+    id: '2',
+    title: 'AI Chatbot Integration',
+    description: 'Integrate OpenAI GPT-4 into our customer support system with natural language processing.',
+    reward: 3500,
+    status: 'active',
+    deadline: '2024-02-20',
+    participants: 8,
+    tags: ['AI', 'OpenAI', 'Chatbot'],
+    category: 'Development',
+    createdAt: '2024-01-20',
+    createdBy: {
+      id: '2',
+      name: 'Jane Smith',
+      username: 'janesmith'
+    }
+  },
+  {
+    id: '3',
+    title: 'Mobile App UI Redesign',
+    description: 'Redesign the mobile app interface for better user experience and modern design principles.',
+    reward: 1800,
+    status: 'active',
+    deadline: '2024-02-10',
+    participants: 15,
+    tags: ['Mobile', 'UI/UX', 'Redesign'],
+    category: 'Design',
+    createdAt: '2024-01-25',
+    createdBy: {
+      id: '3',
+      name: 'Mike Johnson',
+      username: 'mikejohnson'
+    }
+  },
+  {
+    id: '4',
+    title: 'Blockchain Smart Contract',
+    description: 'Develop a smart contract for decentralized voting system with security best practices.',
+    reward: 4200,
+    status: 'active',
+    deadline: '2024-02-25',
+    participants: 6,
+    tags: ['Blockchain', 'Smart Contract', 'Solidity'],
+    category: 'Development',
+    createdAt: '2024-01-30',
+    createdBy: {
+      id: '4',
+      name: 'Sarah Wilson',
+      username: 'sarahwilson'
+    }
+  },
+  {
+    id: '5',
+    title: 'Content Marketing Strategy',
+    description: 'Create a comprehensive content marketing strategy for our SaaS product launch.',
+    reward: 1500,
+    status: 'completed',
+    deadline: '2024-01-30',
+    participants: 10,
+    tags: ['Marketing', 'Content', 'Strategy'],
+    category: 'Marketing',
+    createdAt: '2024-01-10',
+    createdBy: {
+      id: '5',
+      name: 'Alex Brown',
+      username: 'alexbrown'
+    }
+  },
+  {
+    id: '6',
+    title: 'Data Analytics Dashboard',
+    description: 'Build an interactive dashboard for real-time data visualization and analytics.',
+    reward: 2800,
+    status: 'active',
+    deadline: '2024-02-28',
+    participants: 9,
+    tags: ['Analytics', 'Dashboard', 'Data'],
+    category: 'Development',
+    createdAt: '2024-02-01',
+    createdBy: {
+      id: '6',
+      name: 'Emily Davis',
+      username: 'emilydavis'
+    }
+  }
+]
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+    const category = searchParams.get('category')
+    const search = searchParams.get('search')
+
+    let filteredBounties = [...mockBounties]
+
+    // Apply filters
+    if (status && status !== 'all') {
+      filteredBounties = filteredBounties.filter(bounty => bounty.status === status)
+    }
+
+    if (category && category !== 'all') {
+      filteredBounties = filteredBounties.filter(bounty => bounty.category === category)
+    }
+
+    if (search) {
+      const searchLower = search.toLowerCase()
+      filteredBounties = filteredBounties.filter(bounty =>
+        bounty.title.toLowerCase().includes(searchLower) ||
+        bounty.description.toLowerCase().includes(searchLower) ||
+        bounty.tags.some(tag => tag.toLowerCase().includes(searchLower))
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: filteredBounties,
+      total: filteredBounties.length
+    })
+
+  } catch (error) {
+    console.error('Bounties API error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const validatedData = createBountySchema.parse(body)
+    const { title, description, reward, deadline, category, tags } = body
 
-    const bounty = await prisma.bounty.create({
-      data: {
-        ...validatedData,
-        tags: JSON.stringify(validatedData.tags),
-        creatorId: request.user!.id
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            avatar: true
-          }
-        },
-        _count: {
-          select: {
-            submissions: true
-          }
-        }
+    // Basic validation
+    if (!title || !description || !reward || !deadline || !category) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    // Create new bounty
+    const newBounty = {
+      id: `bounty_${Date.now()}`,
+      title,
+      description,
+      reward: Number(reward),
+      status: 'active',
+      deadline,
+      participants: 0,
+      tags: tags || [],
+      category,
+      createdAt: new Date().toISOString(),
+      createdBy: {
+        id: 'current_user',
+        name: 'Current User',
+        username: 'currentuser'
       }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: newBounty,
+      message: 'Bounty created successfully'
     })
 
-    return successResponse(bounty, 'Bounty created successfully')
-
   } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
-      return validationErrorResponse(error as any)
-    }
-    
     console.error('Create bounty error:', error)
-    return errorResponse('Failed to create bounty', 500)
-  }
-}))
-
-// Get all bounties with pagination and filtering
-export const GET = withRateLimit(async (request: NextRequest) => {
-  try {
-    const searchParams = request.nextUrl.searchParams
-    const query = {
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: parseInt(searchParams.get('limit') || '10'),
-      search: searchParams.get('search') || undefined,
-      category: searchParams.get('category') || undefined,
-      status: searchParams.get('status') || undefined,
-      tags: searchParams.get('tags')?.split(',') || undefined,
-      sortBy: searchParams.get('sortBy') || 'createdAt',
-      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc'
-    }
-
-    const validatedQuery = paginationSchema.parse(query)
-
-    // Build where clause
-    const where: any = {
-      status: { not: 'DRAFT' } // Only show non-draft bounties publicly
-    }
-
-    if (validatedQuery.search) {
-      where.OR = [
-        { title: { contains: validatedQuery.search, mode: 'insensitive' } },
-        { description: { contains: validatedQuery.search, mode: 'insensitive' } }
-      ]
-    }
-
-    if (validatedQuery.category) {
-      where.category = validatedQuery.category
-    }
-
-    if (validatedQuery.status) {
-      where.status = validatedQuery.status
-    }
-
-    if (validatedQuery.tags && validatedQuery.tags.length > 0) {
-      where.tags = {
-        contains: JSON.stringify(validatedQuery.tags[0])
-      }
-    }
-
-    // Get total count
-    const total = await prisma.bounty.count({ where })
-
-    // Get bounties
-    const bounties = await prisma.bounty.findMany({
-      where,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            avatar: true
-          }
-        },
-        _count: {
-          select: {
-            submissions: true
-          }
-        }
-      },
-      orderBy: {
-        [validatedQuery.sortBy]: validatedQuery.sortOrder
-      },
-      skip: (validatedQuery.page - 1) * validatedQuery.limit,
-      take: validatedQuery.limit
-    })
-
-    return paginatedResponse(
-      bounties,
-      validatedQuery.page,
-      validatedQuery.limit,
-      total
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
     )
-
-  } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
-      return validationErrorResponse(error as any)
-    }
-    
-    console.error('Get bounties error:', error)
-    return errorResponse('Failed to get bounties', 500)
   }
-}) 
+} 

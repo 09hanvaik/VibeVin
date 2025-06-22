@@ -1,151 +1,114 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { MessageSquare, Heart, Share2, Repeat2, User, Clock } from 'lucide-react'
+import { MessageSquare, Heart, Share2, User, Clock, FileText, Video, Mic } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ContentItem {
   id: string
-  content: string
+  title: string
+  type: 'article' | 'video' | 'podcast'
   author: string
   timestamp: string
   likes: number
-  shares: number
-  retweets: number
-  isAI: boolean
-  platform: 'twitter' | 'linkedin' | 'instagram'
+  comments: number
+  category: string
 }
 
 interface ContentFeedProps {
-  items?: ContentItem[]
+  content: ContentItem[]
 }
 
-export default function ContentFeed({ items }: ContentFeedProps) {
-  const defaultItems: ContentItem[] = [
-    {
-      id: '1',
-      content: "Just discovered VibeVin's AI-powered prompt optimization! The way it analyzes engagement patterns and suggests improvements is mind-blowing. 🚀 #AI #Productivity",
-      author: "Sarah Chen",
-      timestamp: "2 hours ago",
-      likes: 124,
-      shares: 18,
-      retweets: 32,
-      isAI: true,
-      platform: 'twitter'
-    },
-    {
-      id: '2',
-      content: "The future of content creation is here. VibeVin's prompt insights are helping me create more engaging posts with 40% better performance. Highly recommend!",
-      author: "Tech Innovator",
-      timestamp: "4 hours ago",
-      likes: 89,
-      shares: 12,
-      retweets: 15,
-      isAI: true,
-      platform: 'linkedin'
-    },
-    {
-      id: '3',
-      content: "Working on some amazing AI-generated designs with VibeVin's Encode Design feature. The creativity possibilities are endless! ✨ #Design #AI",
-      author: "Creative Designer",
-      timestamp: "6 hours ago",
-      likes: 256,
-      shares: 45,
-      retweets: 67,
-      isAI: true,
-      platform: 'instagram'
+export default function ContentFeed({ content }: ContentFeedProps) {
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'article': return <FileText size={16} className="text-blue-500" />
+      case 'video': return <Video size={16} className="text-red-500" />
+      case 'podcast': return <Mic size={16} className="text-purple-500" />
+      default: return <FileText size={16} className="text-gray-500" />
     }
-  ]
+  }
 
-  const feedItems = items || defaultItems
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'article': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'video': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+      case 'podcast': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+    }
+  }
 
-  const getPlatformColor = (platform: string) => {
-    switch (platform) {
-      case 'twitter': return 'text-blue-500'
-      case 'linkedin': return 'text-blue-600'
-      case 'instagram': return 'text-pink-500'
-      default: return 'text-gray-500'
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'Development': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'Design': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+      case 'AI': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
     }
   }
 
   return (
-    <div className="space-y-4">
-      {feedItems.map((item, index) => (
+    <div className="space-y-3">
+      {content.map((item, index) => (
         <motion.div
           key={item.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
-          className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300"
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-all duration-300 cursor-pointer"
         >
           {/* Header */}
-          <div className="flex items-start space-x-3 mb-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center">
-              <User size={20} className="text-white" />
+          <div className="flex items-start space-x-3 mb-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full flex items-center justify-center">
+              <User size={16} className="text-gray-600 dark:text-gray-400" />
             </div>
             <div className="flex-1">
-              <div className="flex items-center space-x-2">
-                <h3 className="font-semibold text-foreground">{item.author}</h3>
-                {item.isAI && (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-xs font-medium">
-                    AI Generated
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Clock size={14} />
-                <span>{item.timestamp}</span>
-                <span className={cn("font-medium", getPlatformColor(item.platform))}>
-                  {item.platform.charAt(0).toUpperCase() + item.platform.slice(1)}
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="font-medium text-gray-900 dark:text-white text-sm">
+                  {item.author}
                 </span>
+                <span className={cn(
+                  "inline-block px-2 py-1 text-xs font-medium rounded-full",
+                  getTypeColor(item.type)
+                )}>
+                  {item.type}
+                </span>
+                <span className={cn(
+                  "inline-block px-2 py-1 text-xs font-medium rounded-full",
+                  getCategoryColor(item.category)
+                )}>
+                  {item.category}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                <Clock size={12} />
+                <span>{item.timestamp}</span>
               </div>
             </div>
           </div>
 
           {/* Content */}
-          <div className="mb-4">
-            <p className="text-foreground leading-relaxed">{item.content}</p>
+          <div className="mb-3">
+            <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 mb-1">
+              {item.title}
+            </h4>
           </div>
 
           {/* Engagement Stats */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-1">
-                <Heart size={16} className="text-red-500" />
+                <Heart size={12} className="text-red-500" />
                 <span>{item.likes}</span>
               </div>
               <div className="flex items-center space-x-1">
-                <Repeat2 size={16} className="text-green-500" />
-                <span>{item.retweets}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Share2 size={16} className="text-blue-500" />
-                <span>{item.shares}</span>
+                <MessageSquare size={12} className="text-blue-500" />
+                <span>{item.comments}</span>
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-              >
-                <Heart size={16} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-              >
-                <Repeat2 size={16} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-              >
-                <Share2 size={16} />
-              </motion.button>
+            <div className="flex items-center space-x-1">
+              {getTypeIcon(item.type)}
             </div>
           </div>
         </motion.div>
@@ -155,7 +118,7 @@ export default function ContentFeed({ items }: ContentFeedProps) {
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="w-full py-3 px-4 bg-muted hover:bg-accent text-muted-foreground hover:text-foreground rounded-lg transition-colors font-medium"
+        className="w-full py-2 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors font-medium text-sm"
       >
         Load More Content
       </motion.button>

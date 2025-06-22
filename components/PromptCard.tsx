@@ -1,28 +1,45 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { BarChart3, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { BarChart3, TrendingUp, Activity, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface PromptCardProps {
+interface Prompt {
+  id: string
   title: string
-  metric: string
-  value: string | number
-  change: number
-  changeType: 'increase' | 'decrease'
-  chartData?: number[]
+  description: string
+  performance: number
+  usage: number
+  category: string
+  tags: string[]
 }
 
-export default function PromptCard({
-  title,
-  metric,
-  value,
-  change,
-  changeType,
-  chartData = [65, 72, 68, 75, 82, 78, 85]
-}: PromptCardProps) {
-  const maxValue = Math.max(...chartData)
-  const minValue = Math.min(...chartData)
+interface PromptCardProps {
+  prompt: Prompt
+  onClick?: () => void
+}
+
+export default function PromptCard({ prompt, onClick }: PromptCardProps) {
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'Development': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+      case 'Design': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+      case 'Content': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+    }
+  }
+
+  const getPerformanceColor = (performance: number) => {
+    if (performance >= 90) return 'text-green-600 dark:text-green-400'
+    if (performance >= 80) return 'text-yellow-600 dark:text-yellow-400'
+    return 'text-red-600 dark:text-red-400'
+  }
+
+  const getPerformanceIcon = (performance: number) => {
+    if (performance >= 90) return <TrendingUp size={16} className="text-green-500" />
+    if (performance >= 80) return <Activity size={16} className="text-yellow-500" />
+    return <Activity size={16} className="text-red-500" />
+  }
 
   return (
     <motion.div
@@ -30,68 +47,87 @@ export default function PromptCard({
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2 }}
       transition={{ duration: 0.3 }}
-      className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300"
+      onClick={onClick}
+      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-lg transition-all duration-300 cursor-pointer"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-3">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
-            <BarChart3 size={20} className="text-white" />
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
+            <BarChart3 size={16} className="text-white" />
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground">{title}</h3>
-            <p className="text-sm text-muted-foreground">{metric}</p>
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-1">
+              {prompt.title}
+            </h3>
+            <span className={cn(
+              "inline-block px-2 py-1 text-xs font-medium rounded-full mt-1",
+              getCategoryColor(prompt.category)
+            )}>
+              {prompt.category}
+            </span>
           </div>
         </div>
         <div className="flex items-center space-x-1">
-          {changeType === 'increase' ? (
-            <TrendingUp size={16} className="text-green-500" />
-          ) : (
-            <TrendingDown size={16} className="text-red-500" />
-          )}
+          {getPerformanceIcon(prompt.performance)}
           <span className={cn(
             "text-sm font-medium",
-            changeType === 'increase' ? "text-green-600" : "text-red-600"
+            getPerformanceColor(prompt.performance)
           )}>
-            {change > 0 ? '+' : ''}{change}%
+            {prompt.performance}%
           </span>
         </div>
       </div>
 
-      {/* Value */}
-      <div className="mb-6">
-        <div className="text-3xl font-bold text-foreground mb-1">
-          {typeof value === 'number' ? value.toLocaleString() : value}
+      {/* Description */}
+      <p className="text-gray-600 dark:text-gray-400 text-xs mb-3 line-clamp-2">
+        {prompt.description}
+      </p>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-1 mb-3">
+        {prompt.tags.slice(0, 2).map((tag, tagIndex) => (
+          <span
+            key={tagIndex}
+            className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full"
+          >
+            <Tag className="h-3 w-3 mr-1" />
+            {tag}
+          </span>
+        ))}
+        {prompt.tags.length > 2 && (
+          <span className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
+            +{prompt.tags.length - 2} more
+          </span>
+        )}
+      </div>
+
+      {/* Usage Stats */}
+      <div className="flex items-center justify-between text-sm">
+        <div className="text-gray-600 dark:text-gray-400">
+          <span className="font-medium text-gray-900 dark:text-white">
+            {prompt.usage.toLocaleString()}
+          </span> uses
         </div>
-        <div className="text-sm text-muted-foreground">
-          vs last period
+        <div className="text-gray-600 dark:text-gray-400">
+          {prompt.performance}% success
         </div>
       </div>
 
-      {/* Mini Chart */}
-      <div className="flex items-end justify-between h-16 space-x-1">
-        {chartData.map((dataPoint, index) => {
-          const height = ((dataPoint - minValue) / (maxValue - minValue)) * 100
-          return (
-            <motion.div
-              key={index}
-              initial={{ height: 0 }}
-              animate={{ height: `${height}%` }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={cn(
-                "flex-1 rounded-t-sm min-w-[4px]",
-                "bg-gradient-to-t from-primary/60 to-primary"
-              )}
-              style={{ height: `${height}%` }}
-            />
-          )
-        })}
-      </div>
-
-      {/* Status indicator */}
-      <div className="flex items-center space-x-2 mt-4 text-sm">
-        <Activity size={14} className="text-green-500" />
-        <span className="text-muted-foreground">Prompt loading...</span>
+      {/* Performance Bar */}
+      <div className="mt-3">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${prompt.performance}%` }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className={cn(
+              "h-2 rounded-full",
+              prompt.performance >= 90 ? "bg-green-500" :
+              prompt.performance >= 80 ? "bg-yellow-500" : "bg-red-500"
+            )}
+          />
+        </div>
       </div>
     </motion.div>
   )

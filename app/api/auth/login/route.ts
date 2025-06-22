@@ -1,62 +1,74 @@
-import { NextRequest } from 'next/server'
-import { loginSchema } from '@/lib/validation'
-import { verifyPassword, generateToken } from '@/lib/auth'
-import { prisma } from '@/lib/db'
-import { successResponse, errorResponse, validationErrorResponse, withRateLimit } from '@/lib/api'
+import { NextRequest, NextResponse } from 'next/server'
 
-export const POST = withRateLimit(async (request: NextRequest) => {
+// Mock user data for demo
+const mockUsers = [
+  {
+    id: '1',
+    email: 'admin@vibevin.com',
+    username: 'admin',
+    name: 'Admin User',
+    password: 'admin123',
+    role: 'admin',
+    isVerified: true,
+    avatar: null,
+    bio: 'Platform administrator'
+  },
+  {
+    id: '2',
+    email: 'user@vibevin.com',
+    username: 'user',
+    name: 'Demo User',
+    password: 'user123',
+    role: 'user',
+    isVerified: true,
+    avatar: null,
+    bio: 'Demo user account'
+  }
+]
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const validatedData = loginSchema.parse(body)
+    const { email, password } = body
 
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email: validatedData.email },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        password: true,
-        name: true,
-        bio: true,
-        avatar: true,
-        role: true,
-        isVerified: true,
-        createdAt: true
+    // Basic validation
+    if (!email || !password) {
+      return NextResponse.json(
+        { success: false, error: 'Email and password are required' },
+        { status: 400 }
+      )
+    }
+
+    // Find user
+    const user = mockUsers.find(u => u.email === email && u.password === password)
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid email or password' },
+        { status: 401 }
+      )
+    }
+
+    // Create mock token
+    const token = `mock_token_${user.id}_${Date.now()}`
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user
+
+    return NextResponse.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: userWithoutPassword,
+        token
       }
     })
 
-    if (!user) {
-      return errorResponse('Invalid email or password', 401)
-    }
-
-    // Verify password
-    const isValidPassword = await verifyPassword(validatedData.password, user.password)
-    if (!isValidPassword) {
-      return errorResponse('Invalid email or password', 401)
-    }
-
-    // Generate JWT token
-    const token = generateToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role
-    })
-
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user
-
-    return successResponse({
-      user: userWithoutPassword,
-      token
-    }, 'Login successful')
-
   } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
-      return validationErrorResponse(error as any)
-    }
-    
     console.error('Login error:', error)
-    return errorResponse('Failed to login', 500)
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    )
   }
-}) 
+} 
