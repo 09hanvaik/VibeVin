@@ -57,6 +57,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext)
-  // Return undefined instead of throwing error to allow fallback handling
-  return context
+  // Return a fallback object instead of throwing error
+  return context || { theme: 'light' as Theme, toggleTheme: () => {} }
 } 

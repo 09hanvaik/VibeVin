@@ -35,8 +35,8 @@ export default function AnimatedLogo({
 
   return (
     <div className={`flex items-center space-x-3 ${className}`}>
-      {/* Logo Container */}
-      <div className={`${sizeClasses[size]} bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center relative overflow-hidden`}>
+      {/* Logo Container - Always maintains size */}
+      <div className={`${sizeClasses[size]} bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center relative overflow-hidden flex-shrink-0`}>
         {/* Initial W */}
         <motion.div
           initial={{ opacity: 1, scale: 1 }}
@@ -78,13 +78,13 @@ export default function AnimatedLogo({
         </motion.div>
       </div>
 
-      {/* Text */}
+      {/* Text - Only shows/hides based on showText prop */}
       {showText && (
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={hasAnimated ? { opacity: 1, x: 0 } : {}}
           transition={{ duration: 0.6, delay: 1.8 }}
-          className={`font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent ${textSizeClasses[size]}`}
+          className={`font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent ${textSizeClasses[size]} whitespace-nowrap`}
         >
           VibeVin
         </motion.div>

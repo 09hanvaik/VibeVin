@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import { motion } from 'framer-motion'
 import { 
   LayoutDashboard, 
@@ -25,20 +25,43 @@ const menuItems = [
   { icon: MessageSquare, label: 'Social Feed', href: '/social-feed' },
 ]
 
-export default function Sidebar() {
+const Sidebar = memo(function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isClient, setIsClient] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const themeContext = useTheme()
   
   // Fallback if theme context is not available
   const theme = themeContext?.theme || 'light'
 
+  // Initialize sidebar state from localStorage and check screen size
   useEffect(() => {
     setIsClient(true)
+    const savedCollapsed = localStorage.getItem('sidebarCollapsed')
+    if (savedCollapsed !== null) {
+      setIsCollapsed(savedCollapsed === 'true')
+    }
+    
+    // Check if mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  return (
+  const handleCollapseToggle = () => {
+    const newCollapsed = !isCollapsed
+    setIsCollapsed(newCollapsed)
+    localStorage.setItem('sidebarCollapsed', newCollapsed.toString())
+  }
+
+  // Memoize the sidebar content to prevent re-renders
+  const sidebarContent = useMemo(() => (
     <>
       {/* Mobile menu button */}
       <button
@@ -60,7 +83,7 @@ export default function Sidebar() {
       <motion.aside
         initial={{ x: -280 }}
         animate={{ 
-          x: isMobileOpen ? 0 : (isClient && window.innerWidth < 1024 ? -280 : 0)
+          x: isMobileOpen ? 0 : (isClient && isMobile ? -280 : 0)
         }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className={cn(
@@ -71,14 +94,21 @@ export default function Sidebar() {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-border">
+          <div className={cn(
+            "border-b border-border transition-all duration-300",
+            isCollapsed ? "p-4" : "p-6"
+          )}>
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
+              className={cn(
+                "flex items-center",
+                isCollapsed ? "justify-center" : "justify-start"
+              )}
             >
               <AnimatedLogo 
-                size={isCollapsed ? "sm" : "md"} 
+                size="md"
                 showText={!isCollapsed}
               />
             </motion.div>
@@ -96,8 +126,10 @@ export default function Sidebar() {
                 className={cn(
                   "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   "hover:bg-accent hover:text-accent-foreground",
-                  "text-muted-foreground hover:text-foreground"
+                  "text-muted-foreground hover:text-foreground",
+                  isCollapsed && "justify-center"
                 )}
+                title={isCollapsed ? item.label : undefined}
               >
                 <item.icon size={20} />
                 {!isCollapsed && <span>{item.label}</span>}
@@ -108,8 +140,9 @@ export default function Sidebar() {
           {/* Collapse button */}
           <div className="p-4 border-t border-border">
             <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={handleCollapseToggle}
               className="hidden lg:flex items-center justify-center w-full p-2 rounded-lg hover:bg-accent transition-colors text-foreground"
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               <motion.div
                 animate={{ rotate: isCollapsed ? 180 : 0 }}
@@ -124,5 +157,9 @@ export default function Sidebar() {
         </div>
       </motion.aside>
     </>
-  )
-} 
+  ), [isCollapsed, isMobileOpen, isClient, isMobile, theme])
+
+  return sidebarContent
+})
+
+export default Sidebar 
