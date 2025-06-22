@@ -29,7 +29,10 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isClient, setIsClient] = useState(false)
-  const { theme } = useTheme()
+  const themeContext = useTheme()
+  
+  // Fallback if theme context is not available
+  const theme = themeContext?.theme || 'light'
 
   useEffect(() => {
     setIsClient(true)

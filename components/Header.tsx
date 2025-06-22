@@ -15,7 +15,11 @@ import { useTheme } from './ThemeProvider'
 
 export default function Header() {
   const [pageTitle] = useState('Dashboard')
-  const { theme, toggleTheme } = useTheme()
+  const themeContext = useTheme()
+  
+  // Fallback if theme context is not available
+  const theme = themeContext?.theme || 'light'
+  const toggleTheme = themeContext?.toggleTheme || (() => {})
 
   return (
     <motion.header
